@@ -51,6 +51,7 @@ jobs:
         run: |
           julia --project -e '
             using Pkg
+            Pkg.develop(path=".")
             Pkg.develop(url="https://github.com/arafune/ARPES.jl")
             Pkg.instantiate()
             Pkg.test()
@@ -86,6 +87,7 @@ jobs:
         run: |
           julia --project=docs -e '
             using Pkg
+            Pkg.develop(path=".")
             Pkg.develop(url="https://github.com/arafune/ARPES.jl")
             Pkg.instantiate()
           '
