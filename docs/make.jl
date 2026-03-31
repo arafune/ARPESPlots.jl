@@ -1,23 +1,18 @@
 using ARPESPlots
 using Documenter
 
-DocMeta.setdocmeta!(ARPESPlots, :DocTestSetup, :(using ARPESPlots); recursive=true)
+DocMeta.setdocmeta!(ARPESPlots, :DocTestSetup, :(using ARPESPlots); recursive = true)
 
 makedocs(;
-    modules=[ARPESPlots],
-    authors="Ryuichi Arafune",
-    sitename="ARPESPlots.jl",
-    format=Documenter.HTML(;
-        canonical="https://arafune.github.io/ARPESPlots.jl",
-        edit_link="main",
-        assets=String[],
+    modules = [ARPESPlots],
+    authors = "Ryuichi Arafune",
+    sitename = "ARPESPlots.jl",
+    format = Documenter.HTML(;
+        canonical = "https://arafune.github.io/ARPESPlots.jl",
+        edit_link = "main",
+        assets = String[],
     ),
-    pages=[
-        "Home" => "index.md",
-    ],
+    pages = ["Home" => "index.md"],
 )
 
-deploydocs(;
-    repo="github.com/arafune/ARPESPlots.jl",
-    devbranch="main",
-)
+deploydocs(; repo = "github.com/arafune/ARPESPlots.jl.git", devbranch = "main")
