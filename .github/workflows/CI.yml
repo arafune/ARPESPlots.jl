@@ -37,7 +37,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
 
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       # --- FIX: handle unregistered dependency (ARPES) ---
       - name: Instantiate & test
@@ -73,7 +73,7 @@ jobs:
         with:
           version: "1"
 
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       # --- FIX: same for docs environment ---
       - name: Instantiate docs
@@ -84,7 +84,6 @@ jobs:
               PackageSpec(path="."),
               PackageSpec(url="https://github.com/arafune/ARPES.jl"),
             ])
-            Pkg.develop(path=".")
             Pkg.instantiate()
           '
 
