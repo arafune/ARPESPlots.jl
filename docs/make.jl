@@ -15,4 +15,8 @@ makedocs(;
     pages = ["Home" => "index.md"],
 )
 
-deploydocs(; repo = "github.com/arafune/ARPESPlots.jl.git", devbranch = "main")
+deploydocs(;
+    repo = "github.com/arafune/ARPESPlots.jl.git",
+    devbranch = "main",
+    push_preview = true,
+)
