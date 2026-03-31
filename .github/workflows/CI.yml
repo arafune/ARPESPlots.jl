@@ -45,7 +45,6 @@ jobs:
           julia --project -e '
             using Pkg
 
-            Pkg.develop(PackageSpec(path="."); preserve=Pkg.PRESERVE_ALL)
             Pkg.develop(PackageSpec(url="https://github.com/arafune/ARPES.jl"); preserve=Pkg.PRESERVE_ALL)
             Pkg.instantiate()
             Pkg.test()
