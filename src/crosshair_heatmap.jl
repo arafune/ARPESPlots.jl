@@ -287,17 +287,9 @@ function crosshair_heatmap(
         linestyle = :dash,
     )
 
-    # Helper: get index range around a value with given thickness
-    function get_range_indices(val, lookup_vals, n, thickness)
-        idx = clamp(searchsortedfirst(lookup_vals, val), 1, n)
-        return max(1, idx-thickness):min(n, idx+thickness)
-    end
-
     # Vertical integration span (x-direction)
     vspan_range = lift(A2, pos, crosshair_thick_x) do a, p, tx
-        lx = lookup(a, 1)
-        r = get_range_indices(p[1], lx, length(lx), tx)
-        return lx[first(r)], lx[last(r)]
+        _compute_vspan_range(a, p, tx)
     end
 
     vspan!(
@@ -309,9 +301,7 @@ function crosshair_heatmap(
 
     # Horizontal integration span (y-direction)
     hspan_range = lift(A2, pos, crosshair_thick_y) do a, p, ty
-        ly = lookup(a, 2)
-        r = get_range_indices(p[2], ly, length(ly), ty)
-        return ly[first(r)], ly[last(r)]
+        _compute_hspan_range(a, p, ty)
     end
 
     hspan!(
@@ -323,46 +313,27 @@ function crosshair_heatmap(
 
     # Top plot: average along y-direction (horizontal slice)
     line_top_data = lift(A2, pos, crosshair_thick_y) do a, p, ty
-        ly = lookup(a, 2)
-        ry = get_range_indices(p[2], ly, length(ly), ty)
-        sliced = vec(mean(parent(a[:, ry]), dims = 2))
-        #    @debug "length(sliced), length(lookup(a, 1))" length(sliced), length(lookup(a, 1))
-        zmin, zmax = minimum(a), maximum(a)
-        ylims!(ax_top, zmin, zmax)
-        return Point2f.(lookup(a, 1), sliced)
+        _compute_slice_line_top(a, p, ty)
     end
     lines!(ax_top, line_top_data, color = :blue)
 
     # Right plot: average along x-direction (vertical slice)
     line_right_data = lift(A2, pos, crosshair_thick_x) do a, p, tx
-        lx = lookup(a, 1)
-        rx = get_range_indices(p[1], lx, length(lx), tx)
-        sliced = vec(mean(parent(a[rx, :]), dims = 1))
-        return Point2f.(sliced, lookup(a, 2))
+        _compute_slice_line_right(a, p, tx)
     end
     lines!(ax_right, line_right_data, color = :blue)
 
     # Label showing current position and averaged intensity
     label_text =
         lift(A2, pos, crosshair_thick_x, crosshair_thick_y, stack_idx) do a, p, tx, ty, si
-            lx = lookup(a, 1)
-            ly = lookup(a, 2)
-            nx, ny = length(lx), length(ly)
-
-            ix = clamp(searchsortedfirst(lx, p[1]), 1, nx)
-            iy = clamp(searchsortedfirst(ly, p[2]), 1, ny)
-
-            rx = max(1, ix-tx):min(nx, ix+tx)
-            ry = max(1, iy-ty):min(ny, iy+ty)
-
-            z = mean(parent(a[rx, ry]))
-
-            return """
-                $(name(dims(a, 1))): $(round(lx[ix], digits=4)) (±$tx pts)
-                $(name(dims(a, 2))): $(round(ly[iy], digits=4)) (±$ty pts)
-                $(name(stack_dim)): $(round(stack_lookup[si], digits=4))
-                Avg Intensity: $(round(z, digits=4))
-                """
+            _make_label(
+                a,
+                p,
+                tx,
+                ty;
+                stack_dim_name = string(name(stack_dim)),
+                stack_val = stack_lookup[si],
+            )
         end
 
     Label(
@@ -380,8 +351,9 @@ function crosshair_heatmap(
     linkxaxes!(ax_main, ax_top)
     linkyaxes!(ax_main, ax_right)
 
-    # Update projection axis limits based on current slice
-    on(A2) do a
+    # Update projection axis limits based on current slice.
+    # update=true fires immediately on registration to set the initial limits.
+    on(A2; update = true) do a
         zmin, zmax = minimum(a), maximum(a)
         ylims!(ax_top, zmin, zmax)
         xlims!(ax_right, zmin, zmax)
