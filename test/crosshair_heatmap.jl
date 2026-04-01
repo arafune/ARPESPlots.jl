@@ -1,13 +1,12 @@
 using Test
 using DimensionalData
+using DimensionalData: @dim
 using CairoMakie
 using ARPES
+using ARPES: ARPESData, kx, ky, kz, phi, psi, eV
 using ARPESPlots
 
 @testset "ARPESPlots Interactive Heatmap Tests" begin
-    # Mocking Dimensions
-    @dim eV "Binding Energy"
-    @dim phi "Angle"
 
     # Create Dummy Data
     data = rand(Float64, 40, 60)
