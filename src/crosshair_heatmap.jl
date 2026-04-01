@@ -104,15 +104,8 @@ function crosshair_heatmap(
         linestyle = v_line_style,
     )
 
-    function get_range_indices(val, lookup_vals, n, thickness)
-        idx = clamp(searchsortedfirst(lookup_vals, val), 1, n)
-        return max(1, idx-thickness):min(n, idx+thickness)
-    end
-
     vspan_range = lift(pos, crosshair_thick_x) do p, tx
-        # get index
-        r = get_range_indices(p[1], lookup(A, 1), nx, tx)
-        return lookup(A, 1)[first(r)], lookup(A, 1)[last(r)]
+        _compute_vspan_range(A, p, tx)
     end
 
     vspan!(
@@ -123,8 +116,7 @@ function crosshair_heatmap(
     )
 
     hspan_range = lift(pos, crosshair_thick_y) do p, ty
-        r = get_range_indices(p[2], lookup(A, 2), ny, ty)
-        return lookup(A, 2)[first(r)], lookup(A, 2)[last(r)]
+        _compute_hspan_range(A, p, ty)
     end
 
     hlines!(
@@ -142,46 +134,18 @@ function crosshair_heatmap(
         color = h_span_color,
     )
 
-    function get_range(val, lookup_vals, n, thickness)
-        idx = clamp(searchsortedfirst(lookup_vals, val), 1, n)
-        return max(1, idx-thickness):min(n, idx+thickness)
-    end
-
-
-    # get index of the closest point in the heatmap to the mouse position
-    function get_indices(p)
-        x, y = p
-        x_idx = clamp(searchsortedfirst(lookup(A, 1), x), 1, nx)
-        y_idx = clamp(searchsortedfirst(lookup(A, 2), y), 1, ny)
-        return x_idx, y_idx
-    end
-
     line_top_data = lift(pos, crosshair_thick_y) do p, ty
-        ry = get_range_indices(p[2], lookup(A, 2), ny, ty)
-        sliced_data = vec(mean(parent(A[:, ry]), dims = 2))
-        return Point2f.(lookup(A, 1), sliced_data)
+        _compute_slice_line_top(A, p, ty)
     end
     lines!(ax_top, line_top_data, color = :blue)
 
     line_right_data = lift(pos, crosshair_thick_x) do p, tx
-        rx = get_range_indices(p[1], lookup(A, 1), nx, tx)
-        sliced_data = vec(mean(parent(A[rx, :]), dims = 1))
-        return Point2f.(sliced_data, lookup(A, 2))
+        _compute_slice_line_right(A, p, tx)
     end
     lines!(ax_right, line_right_data, color = :blue)
 
     label_text = lift(pos, crosshair_thick_x, crosshair_thick_y) do p, tx, ty
-        ix = clamp(searchsortedfirst(lookup(A, 1), p[1]), 1, nx)
-        iy = clamp(searchsortedfirst(lookup(A, 2), p[2]), 1, ny)
-        # Calculate mean in the current integration box
-        rx = max(1, ix-tx):min(nx, ix+tx)
-        ry = max(1, iy-ty):min(ny, iy+ty)
-        z = mean(parent(A[rx, ry]))
-        return """
-            $(name(dims(A, 1))): $(round(lookup(A, 1)[ix], digits=4)) (±$tx pts)
-            $(name(dims(A, 2))): $(round(lookup(A, 2)[iy], digits=4)) (±$ty pts)
-            Avg Intensity: $(round(z, digits=4))
-            """
+        _make_label(A, p, tx, ty)
     end
 
     Label(
