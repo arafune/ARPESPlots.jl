@@ -8,7 +8,7 @@ export waterfall_dispersion, waterfall_dispersion!
 """
     waterfall_dispersion!(ax, A, stack_dim, scale_factor, cmap, mode, alpha)
     waterfall_dispersion!(ax, A, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line,
-  alpha=0.5)
+alpha=0.5)
 
 Create a waterfall plot in an existing Axis, showing multiple slices of a multidimensional
 array with vertical offsets.
@@ -144,7 +144,7 @@ waterfall_dispersion!(
 
 """
     waterfall_dispersion(A, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line, alpha=0.5,
-  figure=(;), axis=(;), axis_right=(;)
+figure=(;), axis=(;), axis_right=(;)
 
 Create a waterfall plot showing multiple slices of a multidimensional array with vertical
   offsets.
