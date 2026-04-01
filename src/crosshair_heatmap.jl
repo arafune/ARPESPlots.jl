@@ -499,36 +499,30 @@ function _compute_hspan_range(
     return ly[first(r)], ly[last(r)]
 end
 
-# Generate the label string showing coordinates and averaged intensity
-# Optionally includes stack dimension info for 3D data
+# Generate the label string showing coordinates and averaged intensity.
+# Pass stack_dim_name and stack_val together to include stack dimension info (3D data).
 function _make_label(
     A::AbstractDimArray{T,2},
     pos::Point2f,
     crosshair_thick_x::Int,
     crosshair_thick_y::Int;
+    stack_dim_name::Union{Nothing,AbstractString} = nothing,
     stack_val::Union{Nothing,Real} = nothing,
-    stack_dim_name::Union{Nothing,String} = nothing,
-    stack_lookup::Union{Nothing,AbstractVector{<:Real}} = nothing,
 )::String where {T}
-
     nx, ny = size(A)
     ix, iy = _get_indices(pos, A)
 
-    # Compute the integration range around the cursor
-    rx = max(1, ix-crosshair_thick_x):min(nx, ix+crosshair_thick_x)
-    ry = max(1, iy-crosshair_thick_y):min(ny, iy+crosshair_thick_y)
+    rx = max(1, ix - crosshair_thick_x):min(nx, ix + crosshair_thick_x)
+    ry = max(1, iy - crosshair_thick_y):min(ny, iy + crosshair_thick_y)
     z = mean(parent(A[rx, ry]))
 
-    # Build the label string
-    s = """
-        $(name(dims(A, 1))): $(round(lookup(A, 1)[ix], digits=4)) (±$crosshair_thick_x pts)
-        $(name(dims(A, 2))): $(round(lookup(A, 2)[iy], digits=4)) (±$crosshair_thick_y pts)
-        Avg Intensity: $(round(z, digits=4))
-        """
-    # Add stack dimension info if provided (for 3D slices)
-
-    if stack_val === nothing && stack_lookup !== nothing && stack_dim_name !== nothing
-        stack_val = stack_lookup[stack_val]
+    lines = [
+        "$(name(dims(A, 1))): $(round(lookup(A, 1)[ix], digits=4)) (±$crosshair_thick_x pts)",
+        "$(name(dims(A, 2))): $(round(lookup(A, 2)[iy], digits=4)) (±$crosshair_thick_y pts)",
+    ]
+    if stack_dim_name !== nothing && stack_val !== nothing
+        push!(lines, "$stack_dim_name: $(round(stack_val, digits=4))")
     end
-    return s
+    push!(lines, "Avg Intensity: $(round(z, digits=4))")
+    return join(lines, "\n")
 end
