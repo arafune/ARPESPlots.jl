@@ -1,5 +1,6 @@
 using ARPESPlots
 using Test
+using Coverage
 
 @testset "ARPESPlots.jl" begin
     @testset "test for crosshair_heatmap" begin    # Write your tests here.
