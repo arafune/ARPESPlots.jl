@@ -6,61 +6,127 @@ using ARPES
 export waterfall_dispersion, waterfall_dispersion!
 
 """
-    waterfall_dispersion!(ax, A, stack_dim, scale_factor, cmap, mode, alpha)
-    waterfall_dispersion!(ax, A, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line, alpha=0.5)
+    waterfall_dispersion!(ax::AbstractAxis, A::ARPESData; stack_dim=:phi, scale_factor=1.0, cmap=:turbo, mode=:line, alpha=nothing, axis_right=(;))
+    waterfall_dispersion!(ax::AbstractAxis, A::AbstractDimArray, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line, alpha=nothing, axis_right=(;))
+    waterfall_dispersion!(ax::Axis3, A::AbstractDimArray, stack_dim; cmap=:turbo, mode=:line, alpha=nothing)
 
-Create a waterfall plot in an existing Axis, showing multiple slices of a multidimensional
-array with vertical offsets.
+Plot a waterfall dispersion into an existing axis, showing multiple slices of a 2D
+`AbstractDimArray` stacked with vertical offsets (2D axis variants) or as 3D ribbon lines
+(`Axis3` variant).
 
 # Arguments
-- `ax::AbstractAxis`: The Axis to plot into
-- `A::AbstractDimArray`: The input dimensional array to plot
-- `stack_dim::Union{DimensionalData.Dimension,Symbol}`: The dimension along which to
-  slice the array
-- `scale_factor::Real`: Scaling factor for the vertical offset between slices
-- `cmap::Symbol`: Color map to use for coloring different slices (e.g., `:turbo`, `:viridis`)
-- `mode::Symbol`: Plot mode (:line, :fill, :hide)
-- `alpha::Real`: Transparency value for the `:fill` and `:hide` plot elements
+- `ax`: Target axis — an `AbstractAxis` (2D) or `Axis3` (3D).
+- `A`: 2D dimensional array to plot.
+- `stack_dim::Union{DimensionalData.Dimension,Symbol}`: Dimension along which to slice.
+  Defaults to `:phi` when `A` is an `ARPESData`.
+- `scale_factor::Real = 1.0`: Vertical offset multiplier between slices (2D only).
+- `cmap::Symbol = :turbo`: Colormap applied across slices.
+- `mode::Symbol = :line`: Rendering mode — `:line` (lines only), `:fill` (lines + colored
+  bands), or `:hide` (lines + white bands to mask lower slices).
+- `alpha::Union{Real,Nothing} = nothing`: Opacity for band elements; defaults to `0.5`
+  (`:fill`) or `1.0` (`:hide`) when `nothing`.
+- `axis_right::NamedTuple = (;)`: Keyword arguments forwarded to the secondary right-hand
+  `Axis` (2D only; ignored for `Axis3`).
 
 # Returns
-- `Vector{AbstractPlot}`: A vector containing all the plotted line objects
+- **2D variants**: `(Vector{AbstractPlot}, Axis)` — plotted line objects and the linked
+  right-hand axis whose ticks reflect the original stacking-dimension values.
+- **`Axis3` variant**: `Vector{AbstractPlot}` — plotted line objects.
 
 # Description
-This function creates a waterfall-style dispersion plot where each slice along the specified
-dimension is plotted with a vertical offset proportional to its position along that dimension.
-Each slice is colored using the specified colormap, creating a visually appealing 3D-like
-effect that helps visualize how the data changes across the stacking dimension.
+Each slice along `stack_dim` is drawn as a line (and optionally a band) offset vertically by
 
-The vertical offset for each slice is calculated as
-  `scale_factor * abs(stack_axis[i] - bottom)`,
-where `bottom` is the last value in the stacking dimension and `stack_axis[i]` is the
-current position along that dimension.
+    offset = scale_factor * abs(stack_axis[i] - stack_axis[end])
+
+so that the first slice sits highest and the last slice sits at the baseline. Slices are
+colored by sampling `cmap` uniformly across the number of slices.
+
+For the 2D variants a secondary right-hand `Axis` is created and linked to the left axis,
+with tick values drawn from the actual stacking-dimension coordinates.
 
 # Examples
 ```julia
-# Create test data
-data = DimArray(rand(100, 20), (Ti(1:100), Freq(1:20)))
+using DimensionalData, GLMakie
 
-# Plot into existing axis
+E  = range(-2.0, 0.0, length=200)
+kx = range(-1.0, 1.0, length=40)
+A  = DimArray(rand(200, 40), (X(E), Y(kx)))
+
 fig = Figure()
-ax = Axis(fig[1, 1], title="Waterfall Plot")
-plots = waterfall_dispersion!(ax, data, :Freq, scale_factor=0.1)
-
-# Using keyword arguments
-plots = waterfall_dispersion!(ax, data, :Freq,
-                             scale_factor=0.2,
-                             cmap=:viridis)
+ax  = Axis(fig[1, 1], xlabel="Energy (eV)", ylabel="Intensity (arb. u.)")
+plots, ax_right = waterfall_dispersion!(ax, A, :Y; scale_factor=0.05, cmap=:viridis)
+ax_right.ylabel = "kx (Å⁻¹)"
+display(fig)
 ```
-
-# Notes
-
-- All plotted line objects are returned in a vector for further manipulation if needed
-- The mode and alpha parameters are defined but not currently used in the implementation
-- Each line object in the returned vector corresponds to one slice of the input array
 """
 function waterfall_dispersion!(
     ax::AbstractAxis,
-    A::AbstractDimArray,
+    A::ARPESData;
+    stack_dim::Union{DimensionalData.Dimension,Symbol} = :phi,
+    scale_factor::Real = 1.0,
+    cmap::Symbol = :turbo,
+    mode::Symbol = :line,
+    alpha::Union{Real,Nothing} = nothing,
+    axis_right::NamedTuple = (;),
+)
+    return waterfall_dispersion!(
+        ax,
+        A,
+        stack_dim,
+        scale_factor,
+        cmap,
+        mode,
+        alpha,
+        axis_right,
+    )
+end
+
+function waterfall_dispersion!(
+    ax::Axis3,
+    A::AbstractDimArray{T,2} where {T},
+    stack_dim::Union{DimensionalData.Dimension,Symbol};
+    cmap::Symbol = :turbo,
+    mode::Symbol = :line,
+    alpha::Union{Real,Nothing} = nothing,
+)
+    stack_dim = dims(A, stack_dim)
+    xi = otherdims(A, stack_dim)[1]
+    plotted_objects = AbstractPlot[]
+    n = length(stack_dim)
+
+    colors = [cgrad(cmap)[i] for i in range(0, stop = 1, length = n)]
+
+    for (i, a_dimarry) in enumerate(eachslice(A, dims = stack_dim))
+        yi = fill(stack_dim[i], length(lookup(A, xi)))
+        if mode == :fill
+            alpha_val = isnothing(alpha) ? 0.5 : alpha
+            band!(
+                ax,
+                Point3.(lookup(a_dimarry, xi), yi, 0),
+                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
+                color = colors[i],
+                alpha = alpha_val,
+            )
+        elseif mode == :hide
+            alpha_val = isnothing(alpha) ? 1.0 : alpha
+            band!(
+                ax,
+                Point3.(lookup(a_dimarry, xi), yi, 0),
+                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
+                color = :white,
+                alpha = alpha_val,
+            )
+        end
+        line_obj =
+            lines!(ax, lookup(a_dimarry, xi), yi, parent(a_dimarry), color = colors[i])
+        push!(plotted_objects, line_obj)
+    end
+    return plotted_objects
+end
+
+function waterfall_dispersion!(
+    ax::AbstractAxis,
+    A::AbstractDimArray{T,2} where {T},
     stack_dim::Union{DimensionalData.Dimension,Symbol},
     scale_factor::Real,
     cmap::Symbol,
@@ -68,7 +134,6 @@ function waterfall_dispersion!(
     alpha::Union{Real,Nothing},
     axis_right::NamedTuple,
 )
-
     stack_axis = collect(lookup(A, stack_dim))
     n = length(stack_axis)
     bottom = last(stack_axis)
@@ -100,7 +165,7 @@ function waterfall_dispersion!(
                 lookup(a_dimarray, 1),
                 parent(offset_array),
                 parent(a_dimarray) .+ offset,
-                color = "white",
+                color = :white,
                 alpha = alpha,
             )
         end
@@ -132,7 +197,7 @@ end
 
 waterfall_dispersion!(
     ax::AbstractAxis,
-    A::AbstractDimArray,
+    A::AbstractDimArray{T,2} where {T},
     stack_dim::Union{DimensionalData.Dimension,Symbol};
     scale_factor::Real = 1.0,
     cmap::Symbol = :turbo,
@@ -142,61 +207,45 @@ waterfall_dispersion!(
 ) = waterfall_dispersion!(ax, A, stack_dim, scale_factor, cmap, mode, alpha, axis_right)
 
 """
-    waterfall_dispersion(A, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line, alpha=0.5, figure=(;), axis=(;), axis_right=(;)
+    waterfall_dispersion(A, stack_dim; scale_factor=1.0, cmap=:turbo, mode=:line, alpha=nothing, figure=(;), axis=(;), axis_right=(;))
 
-Create a waterfall plot showing multiple slices of a multidimensional array with vertical
-  offsets.
+Create a waterfall dispersion plot, returning a `Makie.FigureAxisPlot`.
 
 # Arguments
-- `A::AbstractDimArray`: The input dimensional array to plot.
-- `stack_dim::Union{DimensionalData.Dimension,Symbol}`: The dimension along which to slice
-  the array.
-- `scale_factor::Real = 1.0`: Scaling factor for the vertical offset between slices.
-- `cmap::Symbol = :turbo`: Color map to use for coloring different slices.
-- `mode::Symbol = :line` : Plot mode (:line, :fill, :hide)
-- `alpha::Union{Real, Nothing} = nothing`: Transparency value for the plot elements
-  (0.0 to 1.0).
-- `figure::NamedTuple = (;)`: Configuration parameters for the Makie `Figure`
-  (e.g., `resolution=(800, 600)`).
-- `axis::NamedTuple = (;)`: Configuration parameters for the Makie `Axis`
-  (e.g., `xlabel="Time"`, `title="Waterfall"`).
-- `axis_right::NamedTuple = (;)`: Configuration parameters for the Makie `Axis` for the
-  right side
+- `A::AbstractDimArray`: 2D dimensional array to plot.
+- `stack_dim::Union{DimensionalData.Dimension,Symbol}`: Dimension along which to slice.
+- `scale_factor::Real = 1.0`: Vertical offset multiplier between slices.
+- `cmap::Symbol = :turbo`: Colormap applied across slices.
+- `mode::Symbol = :line`: Rendering mode — `:line`, `:fill`, or `:hide`.
+- `alpha::Union{Real,Nothing} = nothing`: Band opacity; defaults to `0.5` (`:fill`) or
+  `1.0` (`:hide`) when `nothing`.
+- `figure::NamedTuple = (;)`: Keyword arguments forwarded to `Figure` (e.g. `size=(800,600)`).
+- `axis::NamedTuple = (;)`: Keyword arguments forwarded to the left `Axis`
+  (e.g. `xlabel="Energy (eV)"`).
+- `axis_right::NamedTuple = (;)`: Keyword arguments forwarded to the linked right-hand `Axis`.
 
 # Returns
-- `Makie.FigureAxisPlot`: A Makie object containing the Figure, Axis, and the plot object.
-
-# Description
-This function creates a waterfall-style dispersion plot where each slice along the specified
-dimension is plotted with a vertical offset proportional to its position along that
-dimension. The slices are colored using the specified colormap, creating a visually
-appealing 3D-like effect.
-
-The vertical offset for each slice is calculated based on its position along the stacking
-dimension, multiplied by the `scale_factor`.
+- `Makie.FigureAxisPlot`: Contains the `Figure`, left `Axis`, and the first plot object.
+  The linked right-hand axis (with stacking-dimension tick labels) is accessible via
+  `waterfall_dispersion!` if needed.
 
 # Examples
 ```julia
-data = DimArray(rand(100, 50), (Ti(1:100), Freq(1:50)))
+using DimensionalData, GLMakie
 
-# Basic usage
-fap = waterfall_dispersion(data, :Freq)
+E  = range(-2.0, 0.0, length=200)
+kx = range(-1.0, 1.0, length=40)
+A  = DimArray(rand(200, 40), (X(E), Y(kx)))
 
-# Customizing figure and axis via NamedTuples
-fap = waterfall_dispersion(
-    data, :Freq; 
-    scale_factor=0.2, 
-    figure=(size=(1000, 400), backgroundcolor=:gray90),
-    axis=(title="My Waterfall Plot", xlabel="Time (s)")
+fap = waterfall_dispersion(A, :Y;
+    scale_factor = 0.05,
+    cmap         = :plasma,
+    figure       = (size = (900, 500),),
+    axis         = (xlabel = "Energy (eV)", ylabel = "Intensity (arb. u.)"),
+    axis_right   = (ylabel = "kx (Å⁻¹)",),
 )
+display(fap)
 ```
-# Notes
-
-- The alpha and mode parameters are defined in the signature but their usage depends on
-  the underlying waterfall_dispersion! implementation.
-- Returns a FigureAxisPlot which can be unpacked or displayed directly in a
-  Makie-compatible environment.
-
 """
 function waterfall_dispersion(
     A::AbstractDimArray,
