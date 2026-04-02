@@ -83,7 +83,6 @@ end
     t = 1:50
     f = 1:10
     data = DimArray(rand(length(t), length(f)), (Ti(t), Freq(f)))
-
     fig_3d_1 = Figure()
     ax3d_1 = Axis3(fig_3d_1[1,1])
     plot3d_1 = waterfall_dispersion!(ax3d_1, data, :Freq)
