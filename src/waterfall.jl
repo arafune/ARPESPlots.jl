@@ -102,7 +102,7 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 0.5 : alpha
             band_obj = band!(
                 ax,
-                Point3.(lookup(a_dimarry, xi), yi, 0),
+                Point3.(lookup(a_dimarry, xi), yi, 0.0),
                 Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
                 color = colors[i],
                 alpha = alpha_val,
@@ -112,7 +112,7 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 1.0 : alpha
             band_obj = band!(
                 ax,
-                Point3.(lookup(a_dimarry, xi), yi, 0),
+                Point3.(lookup(a_dimarry, xi), yi, 0.0),
                 Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
                 color = :white,
                 alpha = alpha_val,

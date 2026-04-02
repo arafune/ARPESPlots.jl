@@ -8,6 +8,7 @@ using ARPES
 
 # Force headless backend
 CairoMakie.activate!()
+@dim Freq
 
 @testset "waterfall_dispersion!" begin
     # -------------------------------
@@ -15,7 +16,6 @@ CairoMakie.activate!()
     # -------------------------------
     t = 1:50
     f = 1:10
-    @dim Freq
     data = DimArray(rand(length(t), length(f)), (Ti(t), Freq(f)))
 
     fig = Figure()
@@ -82,22 +82,22 @@ end
 @testset "waterfall_dispersion! (3D)" begin
     t = 1:50
     f = 1:10
-    @dim Freq
     data = DimArray(rand(length(t), length(f)), (Ti(t), Freq(f)))
+
     fig_3d_1 = Figure()
     ax3d_1 = Axis3(fig_3d_1[1,1])
     plot3d_1 = waterfall_dispersion!(ax3d_1, data, :Freq)
     @test length(plot3d_1) == length(f)
 
-#    fig_3d_2 = Figure()
-#    ax3d_2 = Axis3(fig_3d_2[1, 1])
-#    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide)
-#    @test length(plots3d_2) == 2length(f)
-#
-#    fig_3d_3 = Figure()
-#    ax3d_3 = Axis3(fig_3d_3[1, 1])
-#    plots3d_3 = waterfall_dispersion!(ax3d_3, data, :Freq; mode = :fill)
-#    @test length(plots3d_3) == 2length(f)
+    fig_3d_2 = Figure()
+    ax3d_2 = Axis3(fig_3d_2[1, 1])
+    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide)
+    @test length(plots3d_2) == 2length(f)
+
+    fig_3d_3 = Figure()
+    ax3d_3 = Axis3(fig_3d_3[1, 1])
+    plots3d_3 = waterfall_dispersion!(ax3d_3, data, :Freq; mode = :fill)
+    @test length(plots3d_3) == 2length(f)
 
 end
 
