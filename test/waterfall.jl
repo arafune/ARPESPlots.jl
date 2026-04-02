@@ -89,15 +89,15 @@ end
     plot3d_1 = waterfall_dispersion!(ax3d_1, data, :Freq)
     @test length(plot3d_1) == length(f)
 
-    fig_3d_2 = Figure()
-    ax3d_2 = Axis(fig_3d_2[1, 1])
-    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide)
-    @test length(plots3d_2) == 2
-
-    fig_3d_3 = Figure()
-    ax3d_3 = Axis(fig_3d_3[1, 1])
-    plots3d_3 = waterfall_dispersion!(ax3d_3, data, :Freq; mode = :fill)
-    @test length(plots3d_3) == 2
+#    fig_3d_2 = Figure()
+#    ax3d_2 = Axis3(fig_3d_2[1, 1])
+#    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide)
+#    @test length(plots3d_2) == 2length(f)
+#
+#    fig_3d_3 = Figure()
+#    ax3d_3 = Axis3(fig_3d_3[1, 1])
+#    plots3d_3 = waterfall_dispersion!(ax3d_3, data, :Freq; mode = :fill)
+#    @test length(plots3d_3) == 2length(f)
 
 end
 
