@@ -185,7 +185,7 @@ function crosshair_heatmap(
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
 
-    # Resolve stack dimension (Symbol → Dimension)
+    # Resolve stack dimension (SHymbol → Dimension)
     stack_dim = stack_dim isa Symbol ? dims(A, stack_dim) : stack_dim
     stack_lookup = lookup(A, stack_dim)
     n_stack = length(stack_lookup)
@@ -448,8 +448,8 @@ function _make_label(
     nx, ny = size(A)
     ix, iy = _get_indices(pos, A)
 
-    rx = max(1, ix - crosshair_thick_x):min(nx, ix + crosshair_thick_x)
-    ry = max(1, iy - crosshair_thick_y):min(ny, iy + crosshair_thick_y)
+    rx = max(1, ix-crosshair_thick_x):min(nx, ix+crosshair_thick_x)
+    ry = max(1, iy-crosshair_thick_y):min(ny, iy+crosshair_thick_y)
     z = mean(parent(A[rx, ry]))
 
     lines = [
