@@ -333,7 +333,7 @@ function _make_colors(cmap, n::Integer)
             color = Makie.to_color(cmap)
             return fill(color, n)
         catch
-            error("Invalid colormap or color: $cmap")
+            throw(ArgumentError("Invalid colormap or color: $cmap"))
         end
     end
 end

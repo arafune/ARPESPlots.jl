@@ -5,6 +5,7 @@ using DimensionalData: @dim
 using Statistics
 using Makie
 using ARPES
+using ARPESPlots: _make_colors
 
 # Force headless backend
 CairoMakie.activate!()
@@ -84,13 +85,12 @@ end
     f = 1:10
     data = DimArray(rand(length(t), length(f)), (Ti(t), Freq(f)))
     fig_3d_1 = Figure()
-    ax3d_1 = Axis3(fig_3d_1[1,1])
-    plot3d_1 = waterfall_dispersion!(ax3d_1, data, :Freq)
+    ax3d_1 = Axis3(fig_3d_1[1, 1])
+    plot3d_1 = waterfall_dispersion!(ax3d_1, data, :Freq, linewidth = 2)
     @test length(plot3d_1) == length(f)
-
     fig_3d_2 = Figure()
     ax3d_2 = Axis3(fig_3d_2[1, 1])
-    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide)
+    plots3d_2 = waterfall_dispersion!(ax3d_2, data, :Freq; mode = :hide, linestyle = :dash)
     @test length(plots3d_2) == 2length(f)
 
     fig_3d_3 = Figure()
@@ -100,6 +100,12 @@ end
 
 end
 
+@testset "test for _make_color" begin
+    @test length(_make_colors(:viridis, 10)) == 10
+    @test length(_make_colors("black", 10)) == 10
+    @test length(_make_colors(RGBf(0.2, 0.4, 0.8), 10)) == 10
+    @test_throws ArgumentError length(_make_colors("This is not color", 10))
+end
 
 @testset "waterfall_dispersion (wrapper)" begin
     t = 1:30
