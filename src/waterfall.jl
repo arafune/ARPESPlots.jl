@@ -106,8 +106,8 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 0.5 : alpha
             band_obj = band!(
                 ax,
-                Point3.(lookup(a_dimarry, xi), yi, 0.0),
-                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
+                Point3.(collect(lookup(a_dimarry, xi)), yi, 0.0),
+                Point3.(collect(lookup(a_dimarry, xi)), yi, collect(parent(a_dimarry))),
                 color = colors[i],
                 alpha = alpha_val,
             )
@@ -116,8 +116,8 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 1.0 : alpha
             band_obj = band!(
                 ax,
-                Point3.(lookup(a_dimarry, xi), yi, 0.0),
-                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
+                Point3.(collect(lookup(a_dimarry, xi)), yi, 0.0),
+                Point3.(collect(lookup(a_dimarry, xi)), yi, collect(parent(a_dimarry))),
                 color = :white,
                 alpha = alpha_val,
             )
@@ -125,9 +125,9 @@ function waterfall_dispersion!(
         end
         line_obj = lines!(
             ax,
-            lookup(a_dimarry, xi),
+            collect(lookup(a_dimarry, xi)),
             yi,
-            parent(a_dimarry),
+            collect(parent(a_dimarry));
             color = colors[i],
             kwargs...,
         )
@@ -181,7 +181,7 @@ function waterfall_dispersion!(
                 alpha = alpha,
             )
         end
-        line_obj = lines!(ax, a_dimarray .+ offset, color = colors[i], kwargs...)
+        line_obj = lines!(ax, a_dimarray .+ offset; color = colors[i], kwargs...)
         push!(plotted_objects, line_obj)
     end
     ax_right = Axis(
