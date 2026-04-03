@@ -49,10 +49,26 @@ jobs:
             Pkg.instantiate()
             Pkg.test()
           '
+      - uses: julia-actions/julia-runtest@v1
+        if: matrix.version == '1.12' && matrix.os == 'ubuntu-latest'
+        with:
+          coverage: true
 
       - uses: julia-actions/julia-processcoverage@v1
+        if: matrix.version == '1.12' && matrix.os == 'ubuntu-latest'
+
+      - name: Generate HTML coverage
+        if: matrix.version == '1.12' && matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          genhtml lcov.info --output-directory coverage_html
+
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v7
 
       - uses: codecov/codecov-action@v6
+        if: matrix.version == '1.12' && matrix.os == 'ubuntu-latest'
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
