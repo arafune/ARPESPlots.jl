@@ -6,7 +6,7 @@ project_hash = "bdfd6d619f6ee6dc2d5104f526c4e746e4bc8df2"
 
 [[deps.ARPES]]
 deps = ["Dates", "DimensionalData", "Interfaces", "Interpolations", "LinearAlgebra", "LowLevelParticleFilters", "Statistics", "StringEncodings"]
-path = "/Users/arafune/.julia/dev/ARPES"
+path = "/Users/arafune/src/ARPES.jl"
 uuid = "3764e38b-e87f-453d-b456-dc646f8e1bb8"
 version = "0.1.1"
 
