@@ -43,15 +43,16 @@ display(fig)
 function crosshair_heatmap(
     A::AbstractDimArray{T,2} where {T};
     figure::NamedTuple = (;),
-    heatmap_setting::NamedTuple = (;),
     axis_top::NamedTuple = (;),
     axis_right::NamedTuple = (;),
+    heatmap_kwargs...,
 )
     # Get the dimensions and their corresponding axes
-    default_figure_setting = (size = (900, 700),)
+    default_figure_setting = (size = (650, 450),)
     default_top_axis_setting = (xticklabelsvisible = false, ylabel = "Intensity")
     default_right_axis_setting = (yticklabelsvisible = false, xlabel = "Intensity")
     default_heatmap_setting = (colormap = :turbo,)
+    heatmap_setting = merge(default_heatmap_setting, heatmap_kwargs)
 
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
@@ -80,7 +81,7 @@ function crosshair_heatmap(
 
     @debug "size(A)" size(A)
     # Plot the heatmap
-    heatmap!(ax_main, A; merge(default_heatmap_setting, heatmap_setting)...)
+    heatmap!(ax_main, A; heatmap_setting...)
     #get the mouse event 
     pos = Observable(Point2f(median(lookup(A, 1)), median(lookup(A, 2))))
     on(events(ax_main.scene).mouseposition) do _
@@ -161,7 +162,7 @@ function crosshair_heatmap(
 
     linkxaxes!(ax_main, ax_top)
     linkyaxes!(ax_main, ax_right)
-    zmin, zmax = minimum(A), maximum(A)
+    zmin, zmax = extrema(parent(A)[isfinite.(parent(A))])
     ylims!(ax_top, zmin, zmax)
     xlims!(ax_right, zmin, zmax)
 
@@ -172,15 +173,16 @@ function crosshair_heatmap(
     A::AbstractDimArray{T,3} where {T},
     stack_dim::Union{DimensionalData.Dimension,Symbol};
     figure::NamedTuple = (;),
-    heatmap_setting::NamedTuple = (;),
     axis_top::NamedTuple = (;),
     axis_right::NamedTuple = (;),
+    heatmap_kwargs...,
 )
     # Default settings for figure and axes
-    default_figure_setting = (size = (900, 800),)
+    default_figure_setting = (size = (650, 500),)
     default_top_axis_setting = (xticklabelsvisible = false, ylabel = "Intensity")
     default_right_axis_setting = (yticklabelsvisible = false, xlabel = "Intensity")
     default_heatmap_setting = (colormap = :turbo,)
+    heatmap_setting = merge(default_heatmap_setting, heatmap_kwargs)
 
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
@@ -242,13 +244,7 @@ function crosshair_heatmap(
     colgap!(fig.layout, 10)
 
     # Plot heatmap using observable 2D slice
-    heatmap!(
-        ax_main,
-        xvals,
-        yvals,
-        lift(a -> parent(a), A2);
-        merge(default_heatmap_setting, heatmap_setting)...,
-    )
+    heatmap!(ax_main, xvals, yvals, lift(a -> parent(a), A2); heatmap_setting...)
 
     # Mouse position observable (initialized at center of slice)
     pos = Observable(Point2f(median(xvals[]), median(yvals[])))
@@ -354,7 +350,7 @@ function crosshair_heatmap(
     # Update projection axis limits based on current slice.
     # update=true fires immediately on registration to set the initial limits.
     on(A2; update = true) do a
-        zmin, zmax = minimum(a), maximum(a)
+        zmin, zmax = extrema(parent(a)[isfinite.(parent(a))])
         ylims!(ax_top, zmin, zmax)
         xlims!(ax_right, zmin, zmax)
     end

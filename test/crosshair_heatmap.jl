@@ -10,6 +10,7 @@ using ARPESPlots
 
     # Create Dummy Data
     data = rand(Float64, 40, 60)
+    data[3, 3] = NaN
     A = ARPESData(data, (phi(range(-10, 10, 40)), eV(range(0, 5, 60))))
 
     @testset "Figure Generation" begin
@@ -44,6 +45,7 @@ end
 @testset "crosshair_heatmap 3D Tests" begin
     # Create Dummy Data
     data = rand(Float64, 40, 60, 30)
+    data[3, 3, 3] = NaN
     A = ARPESData(
         data,
         (phi(range(-10, 10, 40)), eV(range(0, 5, 60)), psi(range(-5, 5, 30))),
