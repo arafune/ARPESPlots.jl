@@ -161,7 +161,7 @@ function crosshair_heatmap(
 
     linkxaxes!(ax_main, ax_top)
     linkyaxes!(ax_main, ax_right)
-    zmin, zmax = minimum(A), maximum(A)
+    zmin, zmax = extrema(parent(A)[isfinite.(parent(A))])
     ylims!(ax_top, zmin, zmax)
     xlims!(ax_right, zmin, zmax)
 
@@ -354,7 +354,7 @@ function crosshair_heatmap(
     # Update projection axis limits based on current slice.
     # update=true fires immediately on registration to set the initial limits.
     on(A2; update = true) do a
-        zmin, zmax = minimum(a), maximum(a)
+        zmin, zmax = extrema(parent(a)[isfinite.(parent(a))])
         ylims!(ax_top, zmin, zmax)
         xlims!(ax_right, zmin, zmax)
     end
