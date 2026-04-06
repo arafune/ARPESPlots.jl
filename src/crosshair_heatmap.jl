@@ -8,37 +8,73 @@ export crosshair_heatmap
 
 """
     crosshair_heatmap(A::AbstractDimArray{T,2} where T; kwargs...) -> Figure
+    crosshair_heatmap(A::AbstractDimArray{T,3} where T,
+                      stack_dim::Union{DimensionalData.Dimension, Symbol};
+                      kwargs...) -> Figure
 
-Create an interactive 2D heatmap for ARPES data with linked crosshair cursors and
-side-panel line profiles.
+Create an interactive heatmap with a linked crosshair cursor and side-panel line
+profiles for exploring ARPES data.
+
+The 2D method plots `A` directly.  The 3D method treats `A` as a stack of 2D
+heatmaps along `stack_dim` and adds a slider to step through the slices.
 
 # Arguments
-- `A::AbstractDimArray{T,2}`: The 2D dimensional array to plot. Must have valid
-`DimensionalData` dimensions (e.g., `eV`, `phi`).
+- `A`: 2D or 3D data array with `DimensionalData` dimensions.
+- `stack_dim` *(3D only)*: Dimension along which to slice (e.g., `Dim{:hv}` or `:hv`).
 
 # Keyword Arguments
-- `figure::NamedTuple = (;)`: Arguments passed to `Makie.Figure` (e.g., `size = (800, 600)`).
-- `axis_top::NamedTuple = (;)`: Custom attributes for the top slice axis (X-profile).
-- `axis_right::NamedTuple = (;)`: Custom attributes for the right slice axis (Y-profile).
+- `figure::NamedTuple = (;)`: Passed to `Makie.Figure` (e.g., `size = (900, 600)`).
+- `axis_top::NamedTuple = (;)`: Attributes for the top (X-profile) axis.
+- `axis_right::NamedTuple = (;)`: Attributes for the right (Y-profile) axis.
+- `heatmap_kwargs...`: Additional keyword arguments forwarded to `heatmap!`
+  (e.g., `colormap = :inferno`, `colorrange = (0, 1)`).
+
+# Layout
+```
+┌─────────────┬──────────┐
+│  ax_top     │  label   │  row 1 (25 %)
+├─────────────┼──────────┤
+│  ax_main    │ ax_right │  row 2
+├─────────────┴──────────┤
+│  SliderGrid            │  row 3
+└────────────────────────┘
+```
+- **ax_main**: central heatmap; crosshair updates as the mouse moves.
+- **ax_top**: X-direction profile, averaged over the vertical integration band.
+- **ax_right**: Y-direction profile, averaged over the horizontal integration band.
+- **SliderGrid**: sliders control the half-width (in index points) of the integration
+  bands.  The 3D method adds a third **Stack index** slider.
 
 # Features
-- **Dynamic Slicing**: Moving the mouse over the main heatmap updates the top and right
-  line plots in real-time.
-- **Linked Axes**: Zooming or panning the main heatmap automatically stays in sync with the
-  slice axes via `linkxaxes!` and `linkyaxes!`.
-- **Live Labels**: Displays the current coordinate and intensity value in the top-right
-  corner.
+- Mouse movement over `ax_main` updates `ax_top` and `ax_right` in real-time.
+- `ax_main` is linked to `ax_top` (x-axis) and `ax_right` (y-axis).
+- A label in the top-right corner shows the current coordinates, integration range,
+  and averaged intensity.  The 3D method also shows the current `stack_dim` value.
+- When a slider value is non-zero, a shaded span is drawn on `ax_main` to visualise
+  the integration region.
 
-# Example
+# Examples
 
+**2D**
 ```julia
 using DimensionalData, ARPESPlots, GLMakie
-data = rand(100, 100)
-spec = ARPESData(data, (phi(-10:10), eV(0:0.1:9.9)))
-fig = crosshair_heatmap(spec)
+
+A = DimArray(rand(100, 80), (Dim{:phi}(range(-10, 10, 100)), Dim{:eV}(range(0, 8, 80))))
+fig = crosshair_heatmap(A; colormap = :inferno)
 display(fig)
 ```
 
+**3D**
+```julia
+using DimensionalData, ARPESPlots, GLMakie
+
+A = DimArray(
+    rand(100, 80, 5),
+    (Dim{:phi}(range(-10, 10, 100)), Dim{:eV}(range(0, 8, 80)), Dim{:hv}([100, 105, 110, 115, 120])),
+)
+fig = crosshair_heatmap(A, :hv)
+display(fig)
+```
 """
 function crosshair_heatmap(
     A::AbstractDimArray{T,2} where {T};
@@ -156,7 +192,7 @@ function crosshair_heatmap(
         halign = :left,
         font = :bold,
         fontsize = 16,
-        padding = (10, 10, 10, 10),
+        padding = (5, 10, 10, 10),
         justification = :left,
     )
 
@@ -169,6 +205,51 @@ function crosshair_heatmap(
     return fig
 end
 
+"""
+    crosshair_heatmap(A::AbstractDimArray{T,3} where T,
+                      stack_dim::Union{DimensionalData.Dimension, Symbol};
+                      kwargs...) -> Figure
+
+Create an interactive 2D heatmap with a crosshair cursor, side-panel line profiles,
+and a slider to step through slices of a 3D data array.
+
+The 3D array is treated as a stack of 2D heatmaps along `stack_dim`.  All
+crosshair and profile features from the 2D method are available; the extra
+slider selects which 2D slice is displayed.
+
+# Arguments
+- `A::AbstractDimArray{T,3}`: 3D data array with `DimensionalData` dimensions.
+- `stack_dim`: The dimension along which to slice (e.g., `Dim{:hv}` or `:hv`).
+
+# Keyword Arguments
+- `figure::NamedTuple = (;)`: Passed to `Makie.Figure`.
+- `axis_top::NamedTuple = (;)`: Attributes for the top (X-profile) axis.
+- `axis_right::NamedTuple = (;)`: Attributes for the right (Y-profile) axis.
+- `heatmap_kwargs...`: Additional keyword arguments forwarded to `heatmap!`.
+
+# Layout
+Same 2×2 grid as the 2D method, plus a **SliderGrid** with three sliders:
+1. **Horizontal radius (pts)** — half-width of the x-direction integration band.
+2. **Vertical radius (pts)** — half-width of the y-direction integration band.
+3. **Stack index** — selects the active 2D slice along `stack_dim`.
+
+The label in the top-right corner also shows the current value of `stack_dim`.
+
+# Example
+
+```julia
+using DimensionalData, ARPESPlots, GLMakie
+
+A = DimArray(
+    rand(100, 80, 5),
+    (Dim{:phi}(range(-10, 10, 100)), Dim{:eV}(range(0, 8, 80)), Dim{:hv}([100, 105, 110, 115, 120])),
+)
+fig = crosshair_heatmap(A, :hv)
+display(fig)
+```
+
+See also: [`crosshair_heatmap`](@ref) (2D method).
+"""
 function crosshair_heatmap(
     A::AbstractDimArray{T,3} where {T},
     stack_dim::Union{DimensionalData.Dimension,Symbol};
@@ -339,7 +420,7 @@ function crosshair_heatmap(
         halign = :left,
         font = :bold,
         fontsize = 16,
-        padding = (10, 10, 10, 10),
+        padding = (5, 10, 10, 10),
         justification = :left,
     )
 
