@@ -431,7 +431,16 @@ function crosshair_heatmap(
     # Update projection axis limits based on current slice.
     # update=true fires immediately on registration to set the initial limits.
     on(A2; update = true) do a
-        zmin, zmax = extrema(parent(a)[isfinite.(parent(a))])
+        valid_data = parent(a)[isfinite.(parent(a))]
+        if isempty(valid_data)
+            zmin, zmax = 0.0, 1.0
+        else
+            zmin, zmax = extrema(valid_data)
+        end
+        if zmin == zmax
+            zmin -= 0.1
+            zmax += 0.1
+        end
         ylims!(ax_top, zmin, zmax)
         xlims!(ax_right, zmin, zmax)
     end
