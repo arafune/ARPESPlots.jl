@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/arafune/ARPESPlots.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/arafune/ARPESPlots.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/arafune/ARPESPlots.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/arafune/ARPESPlots.jl)
 
-A supporting library for [ARPES.jl](https://github.com/arafune/ARPES.jl).
+A supporting library for [ARPES.jl](https://arafune.github.io/ARPES.jl).
 Currently, there are no plans to include ARPESPlots.jl in ARPES.jl itself. (ARPES.jl is being developed with a polyrepo approach.)
 
 ## Overview
