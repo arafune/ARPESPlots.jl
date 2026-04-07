@@ -1,6 +1,9 @@
 using DimensionalData
 using Statistics
+using LinearAlgebra
 using Makie
+using Observables
+using Observables: throttle
 using Makie: AbstractAxis, AbstractPlot, Axis, Figure, lines!, colormap, ylims!
 using ARPES
 
@@ -88,7 +91,7 @@ function crosshair_heatmap(
     default_top_axis_setting = (xticklabelsvisible = false, ylabel = "Intensity")
     default_right_axis_setting = (yticklabelsvisible = false, xlabel = "Intensity")
     default_heatmap_setting = (colormap = :turbo,)
-    heatmap_setting = merge(default_heatmap_setting, heatmap_kwargs)
+    heatmap_setting = merge(default_heatmap_setting, NamedTuple(heatmap_kwargs))
 
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
@@ -119,10 +122,25 @@ function crosshair_heatmap(
     # Plot the heatmap
     heatmap!(ax_main, A; heatmap_setting...)
     #get the mouse event 
+    tracking = Observable(false)
     pos = Observable(Point2f(median(lookup(A, 1)), median(lookup(A, 2))))
+    pos_throttled = throttle(0.03, pos)
+    pos_px = Observable(Point2f(0, 0)) # To track mouse position in pixel coordinates
     on(events(ax_main.scene).mouseposition) do _
-        if is_mouseinside(ax_main.scene)
-            pos[] = mouseposition(ax_main.scene)
+        if is_mouseinside(ax_main.scene) && tracking[]
+            p_px = mouseposition_px(ax_main.scene)
+            if norm(p_px - pos_px[])>2
+                pos_px[] = p_px
+                pos[] = mouseposition(ax_main.scene)
+            end
+        end
+    end
+    on(events(ax_main.scene).mousebutton) do event
+        if event.button == Mouse.left && event.action == Mouse.press
+            tracking[] = !tracking[]
+            if tracking[]
+                pos[] = mouseposition(ax_main.scene)
+            end
         end
     end
 
@@ -135,13 +153,13 @@ function crosshair_heatmap(
 
     vlines!(
         ax_main,
-        lift(p -> p[1], pos),
+        lift(p -> p[1], pos_throttled),
         color = (:red, 0.3),
         linewidth = v_line_width,
         linestyle = v_line_style,
     )
 
-    vspan_range = lift(pos, crosshair_thick_x) do p, tx
+    vspan_range = lift(pos_throttled, crosshair_thick_x) do p, tx
         _compute_vspan_range(A, p, tx)
     end
 
@@ -152,13 +170,13 @@ function crosshair_heatmap(
         color = v_span_color,
     )
 
-    hspan_range = lift(pos, crosshair_thick_y) do p, ty
+    hspan_range = lift(pos_throttled, crosshair_thick_y) do p, ty
         _compute_hspan_range(A, p, ty)
     end
 
     hlines!(
         ax_main,
-        lift(p -> p[2], pos),
+        lift(p -> p[2], pos_throttled),
         color = (:red, 0.3),
         linewidth = h_line_width,
         linestyle = h_line_style,
@@ -171,17 +189,29 @@ function crosshair_heatmap(
         color = h_span_color,
     )
 
-    line_top_data = lift(pos, crosshair_thick_y) do p, ty
+    line_top_data = lift(pos_throttled, crosshair_thick_y) do p, ty
         _compute_slice_line_top(A, p, ty)
     end
     lines!(ax_top, line_top_data, color = :blue)
-
-    line_right_data = lift(pos, crosshair_thick_x) do p, tx
+    vlines!(
+        ax_top,
+        lift(p -> p[1], pos_throttled),
+        color = (:red, 0.5),
+        linestyle = :dash,
+        linewidth = 1.5,
+    )
+    line_right_data = lift(pos_throttled, crosshair_thick_x) do p, tx
         _compute_slice_line_right(A, p, tx)
     end
     lines!(ax_right, line_right_data, color = :blue)
-
-    label_text = lift(pos, crosshair_thick_x, crosshair_thick_y) do p, tx, ty
+    hlines!(
+        ax_right,
+        lift(p -> p[2], pos_throttled),
+        color = (:red, 0.5),
+        linestyle = :dash,
+        linewidth = 1.5,
+    )
+    label_text = lift(pos_throttled, crosshair_thick_x, crosshair_thick_y) do p, tx, ty
         _make_label(A, p, tx, ty)
     end
 
@@ -192,7 +222,7 @@ function crosshair_heatmap(
         halign = :left,
         font = :bold,
         fontsize = 16,
-        padding = (5, 10, 10, 10),
+        padding = (0, 10, 10, 10),
         justification = :left,
     )
 
@@ -263,12 +293,12 @@ function crosshair_heatmap(
     default_top_axis_setting = (xticklabelsvisible = false, ylabel = "Intensity")
     default_right_axis_setting = (yticklabelsvisible = false, xlabel = "Intensity")
     default_heatmap_setting = (colormap = :turbo,)
-    heatmap_setting = merge(default_heatmap_setting, heatmap_kwargs)
+    heatmap_setting = merge(default_heatmap_setting, NamedTuple(heatmap_kwargs))
 
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
 
-    # Resolve stack dimension (SHymbol → Dimension)
+    # Resolve stack dimension (Symbol → Dimension)
     stack_dim = stack_dim isa Symbol ? dims(A, stack_dim) : stack_dim
     stack_lookup = lookup(A, stack_dim)
     n_stack = length(stack_lookup)
@@ -328,7 +358,10 @@ function crosshair_heatmap(
     heatmap!(ax_main, xvals, yvals, lift(a -> parent(a), A2); heatmap_setting...)
 
     # Mouse position observable (initialized at center of slice)
+    tracking = Observable(false)
     pos = Observable(Point2f(median(xvals[]), median(yvals[])))
+    pos_throttled = throttle(0.03, pos)
+    pos_px = Observable(Point2f(0, 0)) # To track mouse position in pixel coordinates
 
     on(A2) do a
         pos[] = Point2f(median(lookup(a, 1)), median(lookup(a, 2)))
@@ -336,10 +369,23 @@ function crosshair_heatmap(
 
     # Update mouse position when cursor moves inside axis
     on(events(ax_main.scene).mouseposition) do _
-        if is_mouseinside(ax_main.scene)
-            pos[] = mouseposition(ax_main.scene)
+        if is_mouseinside(ax_main.scene) && tracking[]
+            p_px = mouseposition_px(ax_main.scene)
+            if norm(p_px - pos_px[])>2
+                pos_px[] = p_px
+                pos[] = mouseposition(ax_main.scene)
+            end
         end
     end
+    on(events(ax_main.scene).mousebutton) do event
+        if event.button == Mouse.left && event.action == Mouse.press
+            tracking[] = !tracking[]
+            if tracking[]
+                pos[] = mouseposition(ax_main.scene)
+            end
+        end
+    end
+
 
     # Crosshair line styles
     v_line_width = lift(w -> w == 0 ? 1.5 : 0.0, crosshair_thick_x)
@@ -350,7 +396,7 @@ function crosshair_heatmap(
     # Draw vertical and horizontal crosshair lines
     vlines!(
         ax_main,
-        lift(p -> p[1], pos),
+        lift(p -> p[1], pos_throttled),
         color = (:red, 0.3),
         linewidth = v_line_width,
         linestyle = :dash,
@@ -358,14 +404,14 @@ function crosshair_heatmap(
 
     hlines!(
         ax_main,
-        lift(p -> p[2], pos),
+        lift(p -> p[2], pos_throttled),
         color = (:red, 0.3),
         linewidth = h_line_width,
         linestyle = :dash,
     )
 
     # Vertical integration span (x-direction)
-    vspan_range = lift(A2, pos, crosshair_thick_x) do a, p, tx
+    vspan_range = lift(A2, pos_throttled, crosshair_thick_x) do a, p, tx
         _compute_vspan_range(a, p, tx)
     end
 
@@ -377,7 +423,7 @@ function crosshair_heatmap(
     )
 
     # Horizontal integration span (y-direction)
-    hspan_range = lift(A2, pos, crosshair_thick_y) do a, p, ty
+    hspan_range = lift(A2, pos_throttled, crosshair_thick_y) do a, p, ty
         _compute_hspan_range(a, p, ty)
     end
 
@@ -389,29 +435,48 @@ function crosshair_heatmap(
     )
 
     # Top plot: average along y-direction (horizontal slice)
-    line_top_data = lift(A2, pos, crosshair_thick_y) do a, p, ty
+    line_top_data = lift(A2, pos_throttled, crosshair_thick_y) do a, p, ty
         _compute_slice_line_top(a, p, ty)
     end
     lines!(ax_top, line_top_data, color = :blue)
+    vlines!(
+        ax_top,
+        lift(p -> p[1], pos_throttled),
+        color = (:red, 0.5),
+        linestyle = :dash,
+        linewidth = 1.5,
+    )
 
     # Right plot: average along x-direction (vertical slice)
-    line_right_data = lift(A2, pos, crosshair_thick_x) do a, p, tx
+    line_right_data = lift(A2, pos_throttled, crosshair_thick_x) do a, p, tx
         _compute_slice_line_right(a, p, tx)
     end
     lines!(ax_right, line_right_data, color = :blue)
+    hlines!(
+        ax_right,
+        lift(p -> p[2], pos_throttled),
+        color = (:red, 0.5),
+        linestyle = :dash,
+        linewidth = 1.5,
+    )
 
     # Label showing current position and averaged intensity
-    label_text =
-        lift(A2, pos, crosshair_thick_x, crosshair_thick_y, stack_idx) do a, p, tx, ty, si
-            _make_label(
-                a,
-                p,
-                tx,
-                ty;
-                stack_dim_name = string(name(stack_dim)),
-                stack_val = stack_lookup[si],
-            )
-        end
+    label_text = lift(
+        A2,
+        pos_throttled,
+        crosshair_thick_x,
+        crosshair_thick_y,
+        stack_idx,
+    ) do a, p, tx, ty, si
+        _make_label(
+            a,
+            p,
+            tx,
+            ty;
+            stack_dim_name = string(name(stack_dim)),
+            stack_val = stack_lookup[si],
+        )
+    end
 
     Label(
         fig[1, 2],
@@ -420,7 +485,7 @@ function crosshair_heatmap(
         halign = :left,
         font = :bold,
         fontsize = 16,
-        padding = (5, 10, 10, 10),
+        padding = (0, 10, 10, 10),
         justification = :left,
     )
 
@@ -536,7 +601,9 @@ function _make_label(
 
     rx = max(1, ix-crosshair_thick_x):min(nx, ix+crosshair_thick_x)
     ry = max(1, iy-crosshair_thick_y):min(ny, iy+crosshair_thick_y)
-    z = mean(parent(A[rx, ry]))
+    vals = parent(A[rx, ry])
+    vals = vals[isfinite.(vals)]
+    z = isempty(vals) ? NaN : mean(vals)
 
     lines = [
         "$(name(dims(A, 1))): $(round(lookup(A, 1)[ix], digits=4)) (±$crosshair_thick_x pts)",
@@ -545,6 +612,6 @@ function _make_label(
     if stack_dim_name !== nothing && stack_val !== nothing
         push!(lines, "$stack_dim_name: $(round(stack_val, digits=4))")
     end
-    push!(lines, "Avg Intensity: $(round(z, digits=4))")
+    push!(lines, "Avg Int.: $(round(z, digits=4))")
     return join(lines, "\n")
 end
