@@ -106,8 +106,8 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 0.5 : alpha
             band_obj = band!(
                 ax,
-                Point3.(collect(lookup(a_dimarry, xi)), yi, 0.0),
-                Point3.(collect(lookup(a_dimarry, xi)), yi, collect(parent(a_dimarry))),
+                Point3.(lookup(a_dimarry, xi), yi, 0.0),
+                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
                 color = colors[i],
                 alpha = alpha_val,
             )
@@ -116,8 +116,8 @@ function waterfall_dispersion!(
             alpha_val = isnothing(alpha) ? 1.0 : alpha
             band_obj = band!(
                 ax,
-                Point3.(collect(lookup(a_dimarry, xi)), yi, 0.0),
-                Point3.(collect(lookup(a_dimarry, xi)), yi, collect(parent(a_dimarry))),
+                Point3.(lookup(a_dimarry, xi), yi, 0.0),
+                Point3.(lookup(a_dimarry, xi), yi, parent(a_dimarry)),
                 color = :white,
                 alpha = alpha_val,
             )
@@ -125,9 +125,9 @@ function waterfall_dispersion!(
         end
         line_obj = lines!(
             ax,
-            collect(lookup(a_dimarry, xi)),
+            lookup(a_dimarry, xi),
             yi,
-            collect(parent(a_dimarry));
+            parent(a_dimarry);
             color = colors[i],
             kwargs...,
         )
@@ -159,13 +159,12 @@ function waterfall_dispersion!(
 
     for (i, a_dimarray) in enumerate(eachslice(A, dims = stack_dim))
         offset = scale_factor * abs(stack_axis[i] - bottom)
-        offset_array = rebuild(a_dimarray, zeros(size(a_dimarray))) .+ offset
         if mode == :fill
             alpha = isnothing(alpha) ? 0.5 : alpha
             band!(
                 ax,
                 lookup(a_dimarray, 1),
-                parent(offset_array),
+                fill(offset, size(a_dimarray, 1)),
                 parent(a_dimarray) .+ offset,
                 color = colors[i],
                 alpha = alpha,
@@ -175,7 +174,7 @@ function waterfall_dispersion!(
             band!(
                 ax,
                 lookup(a_dimarray, 1),
-                parent(offset_array),
+                fill(offset, size(a_dimarray, 1)),
                 parent(a_dimarray) .+ offset,
                 color = :white,
                 alpha = alpha,
