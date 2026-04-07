@@ -481,7 +481,7 @@ function _compute_slice_line_top(
     thickness::Int,
 )::Vector{Point2f} where {T}
     ry = _get_range_indices(pos[2], lookup(A, 2), size(A, 2), thickness)
-    sliced_data = vec(mean(parent(A[:, ry]), dims = 2))
+    sliced_data = vec(mean(view(parent(A), :, ry), dims = 2))
     return Point2f.(lookup(A, 1), sliced_data)
 end
 
@@ -493,7 +493,7 @@ function _compute_slice_line_right(
     thickness::Int,
 )::Vector{Point2f} where {T}
     rx = _get_range_indices(pos[1], lookup(A, 1), size(A, 1), thickness)
-    sliced_data = vec(mean(parent(A[rx, :]), dims = 1))
+    sliced_data = vec(mean(view(parent(A), rx, :), dims = 1))
     return Point2f.(sliced_data, lookup(A, 2))
 end
 
@@ -536,7 +536,7 @@ function _make_label(
 
     rx = max(1, ix-crosshair_thick_x):min(nx, ix+crosshair_thick_x)
     ry = max(1, iy-crosshair_thick_y):min(ny, iy+crosshair_thick_y)
-    z = mean(parent(A[rx, ry]))
+    z = mean(view(parent(A), rx, ry))
 
     lines = [
         "$(name(dims(A, 1))): $(round(lookup(A, 1)[ix], digits=4)) (±$crosshair_thick_x pts)",
