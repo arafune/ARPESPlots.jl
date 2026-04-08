@@ -2,11 +2,11 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "bdfd6d619f6ee6dc2d5104f526c4e746e4bc8df2"
+project_hash = "a8718e52c398eb8cd32f57f31911368ae45e1609"
 
 [[deps.ARPES]]
 deps = ["Dates", "DimensionalData", "Interfaces", "Interpolations", "LinearAlgebra", "LowLevelParticleFilters", "Statistics", "StringEncodings"]
-path = "/Users/arafune/src/ARPES.jl"
+git-tree-sha1 = "1c69b38387be2658866302a1920b2b55ea9189bb"
 uuid = "3764e38b-e87f-453d-b456-dc646f8e1bb8"
 version = "0.1.1"
 
