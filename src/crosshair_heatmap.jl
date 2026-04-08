@@ -104,7 +104,11 @@ function crosshair_heatmap(
 
     nx, ny = size(A)
     # Create a figure and axis
-    ax_main = Axis(fig[2, 1])
+    ax_main = Axis(
+        fig[2, 1];
+        xlabel = DimensionalData.Dimensions.label(dims(A, 1)),
+        ylabel = DimensionalData.Dimensions.label(dims(A, 2)),
+    )
     ax_top = Axis(fig[1, 1]; merge(default_top_axis_setting, axis_top)...)
     ax_right = Axis(fig[2, 2]; merge(default_right_axis_setting, axis_right)...)
     #
@@ -236,6 +240,15 @@ function crosshair_heatmap(
     linkxaxes!(ax_main, ax_top)
     linkyaxes!(ax_main, ax_right)
     zmin, zmax = extrema(parent(A)[isfinite.(parent(A))])
+    is_log =
+        ax_top.yscale[] in (log, log10, log2) || ax_right.xscale[] in (log, log10, log2)
+    threshold = 1e-10
+    if !isnothing(zmin) && is_log && zmin <= 0
+        positive_data = valid_data[valid_data .> threshold]
+        zmin = isempty(positive_data) ? 1e-6 : minimum(positive_data)
+        zmax = max(zmax, zmin * 10)
+    end
+    @debug "zmin zmax" zmin zmax
     ylims!(ax_top, zmin, zmax)
     xlims!(ax_right, zmin, zmax)
 
@@ -297,11 +310,9 @@ function crosshair_heatmap(
 )
     # Default settings for figure and axes
     default_figure_setting = (size = (650, 500),)
+
     default_top_axis_setting = (xticklabelsvisible = false, ylabel = "Intensity")
     default_right_axis_setting = (yticklabelsvisible = false, xlabel = "Intensity")
-    default_heatmap_setting = (colormap = :turbo,)
-    heatmap_setting = merge(default_heatmap_setting, NamedTuple(heatmap_kwargs))
-
     fig_kwargs = merge(default_figure_setting, figure)
     fig = Figure(; fig_kwargs...)
 
@@ -312,6 +323,12 @@ function crosshair_heatmap(
     stack_dim_idx = dimnum(A, stack_dim)
     # Observable for current stack index
     stack_idx = Observable(1)
+    xlabel = DimensionalData.Dimensions.label(dims(selectdim(A, stack_dim_idx, 1), 1))
+    ylabel = DimensionalData.Dimensions.label(dims(selectdim(A, stack_dim_idx, 1), 2))
+
+    default_heatmap_setting = (colormap = :turbo,)
+    heatmap_setting = merge(default_heatmap_setting, NamedTuple(heatmap_kwargs))
+
 
     # Observable 2D slice extracted from 3D array
     A2 = lift(stack_idx) do i
@@ -331,7 +348,7 @@ function crosshair_heatmap(
     ny = size(selectdim(A, stack_dim_idx, 1), 2)
 
     # Create axes
-    ax_main = Axis(fig[2, 1])
+    ax_main = Axis(fig[2, 1], xlabel = xlabel, ylabel = ylabel)
     ax_top = Axis(fig[1, 1]; merge(default_top_axis_setting, axis_top)...)
     ax_right = Axis(fig[2, 2]; merge(default_right_axis_setting, axis_right)...)
 
@@ -514,14 +531,23 @@ function crosshair_heatmap(
     on(A2; update = true) do a
         valid_data = parent(a)[isfinite.(parent(a))]
         if isempty(valid_data)
-            zmin, zmax = 0.0, 1.0
+            zmin, zmax = nothing, nothing
         else
             zmin, zmax = extrema(valid_data)
         end
-        if zmin == zmax
+        if zmin == zmax && !isnothing(zmin)
             zmin -= 0.1
             zmax += 0.1
         end
+        threshold = 1e-10
+        is_log =
+            ax_top.yscale[] in (log, log10, log2) || ax_right.xscale[] in (log, log10, log2)
+        if !isnothing(zmin) && is_log && zmin <= 0
+            positive_data = valid_data[valid_data .> threshold]
+            zmin = isempty(positive_data) ? 1e-6 : minimum(positive_data)
+            zmax = max(zmax, zmin * 10)
+        end
+        @debug "zmin, zmax" zmin zmax
         ylims!(ax_top, zmin, zmax)
         xlims!(ax_right, zmin, zmax)
     end
