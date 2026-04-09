@@ -4,6 +4,40 @@ using ARPES: stitch_along
 
 export stitch_ui
 
+"""
+    stitch_ui(A, B, dim, figure=(;); heatmap_kwargs...)
+    stitch_ui(A, B; dim=:phi, figure=(;), kwargs...)
+    stitch_ui(A::ARPESData, B::ARPESData, figure; heatmap_kwargs...)
+
+Interactively stitch two 2-D `AbstractDimArray`s along `dim` and display the result
+as a heatmap with live-updating sliders.
+
+# Arguments
+- `A`, `B`: Two 2-D `AbstractDimArray`s (or `ARPESData`) to stitch together.
+- `dim`: Dimension along which to stitch. Accepts a `DimensionalData.Dimension` or a
+  `Symbol` (e.g. `:phi`). Defaults to `:phi` in the keyword-argument overloads.
+- `figure`: `NamedTuple` of keyword arguments forwarded to `Makie.Figure`.
+  Defaults to `(size = (650, 450))`.
+
+# Keyword Arguments
+- `heatmap_kwargs...`: Additional keyword arguments forwarded to `Makie.heatmap!`.
+  `colormap` defaults to `:turbo`.
+
+# Sliders
+- **Seam Ratio** (`0`–`1`, default `0.5`): Controls where the seam between `A` and `B`
+  is placed. Forwarded to `ARPES.stitch_along` as `seam_ratio`.
+- **Gain A** (`0`–`3`, default `1`): Intensity gain applied to `A` before stitching.
+  Forwarded to `ARPES.stitch_along` as `gain_a`.
+
+# Returns
+A `Makie.Figure` containing the heatmap and the slider grid.
+
+# Examples
+```julia
+fig = stitch_ui(data_a, data_b, :phi)
+display(fig)
+```
+"""
 function stitch_ui(
     A::AbstractDimArray{T,2},
     B::AbstractDimArray{T,2},
@@ -41,6 +75,7 @@ function stitch_ui(
     heatmap!(ax, x_obs, y_obs, updated_C; heatmap_setting...)
     fig
 end
+
 stitch_ui(
     A::AbstractDimArray{T,2},
     B::AbstractDimArray{T,2};
