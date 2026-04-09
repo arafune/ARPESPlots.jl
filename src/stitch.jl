@@ -8,7 +8,7 @@ function stitch_ui(
     A::AbstractDimArray{T,2},
     B::AbstractDimArray{T,2},
     dim::Union{DimensionalData.Dimensions.Dimension,Symbol},
-    figure::NamedTuple = (;),
+    figure::NamedTuple = (;);
     heatmap_kwargs...,
 ) where {T}
     default_figure_setting = (size = (650, 450),)
