@@ -41,3 +41,19 @@ function stitch_ui(
     heatmap!(ax, x_obs, y_obs, updated_C; heatmap_setting...)
     fig
 end
+stitch_ui(
+    A::AbstractDimArray{T,2},
+    B::AbstractDimArray{T,2};
+    dim::Union{DimensionalData.Dimensions.Dimension,Symbol} = :phi,
+    figure::NamedTuple = (;),
+    kwargs...,
+) where {T} = stitch_ui(A, B, dim, figure; kwargs...)
+
+function stitch_ui(
+    A::ARPESData{T,2},
+    B::ARPESData{T,2},
+    figure::NamedTuple;
+    heatmap_kwargs...,
+) where {T}
+    stitch_ui(A, B, :phi, figure; heatmap_kwargs...)
+end
