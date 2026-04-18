@@ -1,6 +1,6 @@
 name = "ARPESPlots"
 uuid = "b3deace3-0520-403d-8815-72b37f3f027a"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Ryuichi Arafune"]
 
 [deps]
