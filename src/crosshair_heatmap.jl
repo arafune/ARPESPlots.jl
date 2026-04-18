@@ -239,7 +239,16 @@ function crosshair_heatmap(
 
     linkxaxes!(ax_main, ax_top)
     linkyaxes!(ax_main, ax_right)
-    zmin, zmax = extrema(parent(A)[isfinite.(parent(A))])
+    valid_data = parent(A)[isfinite.(parent(A))]
+    if isempty(valid_data)
+        zmin, zmax = nothing, nothing
+    else
+        zmin, zmax = extrema(valid_data)
+    end
+    if zmin == zmax && !isnothing(zmin)
+        zmin -= 0.1
+        zmax += 0.1
+    end
     is_log =
         ax_top.yscale[] in (log, log10, log2) || ax_right.xscale[] in (log, log10, log2)
     threshold = 1e-10
