@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.5] - Unreleased
+
+### Added
+
+- `tarpes_evolution_mp4(A, outpath; ...)`: new helper to create animations by iterating the `stack_dim` (default `:delay`) frames and writing a video file. When `transparent=false` it uses `Makie.record` for in-process encoding; when `transparent=true` it writes PNG frames (preserving alpha) and invokes `ffmpeg` to encode to an alpha-capable container.
+- `transparent` option and `encoder` choice (`:webm` (VP9) or `:mov` (ProRes 4444)) to preserve transparency. Note: MP4/H.264 does not support alpha — use `.webm` or `.mov` for transparent output.
+- Export `tarpes_evolution_mp4` from `src/tarpes.jl`.
+- Documentation: mention `ffmpeg` is required on PATH when `transparent=true`.
+
+### Changed
+
+- Add transparent keyward argument to tarpes_evolution_heatmaps to switch the background transparency.
+
 ## [0.0.4] - 2026-08-14
 
 ### Added
